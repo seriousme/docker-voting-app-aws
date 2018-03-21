@@ -1,7 +1,7 @@
 Docker Voting App done Serverless Style
 =======================================
 
-# Introduction
+## Introduction
 I was reading [Deploy the Voting App to AWS ECS with Fargate] by Tony Pujals where he describes how to run the [Docker Voting app demo] on AWS using [AWS Fargate]
 
   [Deploy the Voting App to AWS ECS with Fargate]:https://medium.com/@tonypujals/deploy-the-voting-app-to-aws-ecs-with-fargate-
@@ -14,7 +14,7 @@ Given the title: I went Serverless!
 
 The voting application is recreated using AWS ApiGateway and AWS DynamoDB only. The queue service could be implemented using SNS, however one typically uses a queue to ensure scalability of the database or to allow for maintenance. Both are handled by AWS DynamoDB automatically.
 
-# Creating the schema
+## Creating the schema
 Looking at the sources of the voting app there are two endpoints:
 - POST /vote where you can post a vote by posting JSON like `{"vote":"a"}` or `{"vote":"b"}`
 - GET /results which will give you results like:
@@ -72,10 +72,10 @@ and for /results
 
 Loading these in APIgateway ensures for /vote that only valid POST requests are accepted.
 
-# DynamoDB
+## DynamoDB
 The DynamoDB instance with partion key `topic` only holds one record with `topic` value `default` and a numeric value for `a` and `b`
 
-# APIgateway integration
+## APIgateway integration
 A succesful POST operation must result in a increment of the counter for the subject of the vote in the database.
 This is achieved by adding the following integration request mapping template to the POST operation:
 ```json
