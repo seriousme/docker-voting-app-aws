@@ -126,6 +126,6 @@ and the response needs to be mapped to the schema listed above using an integrat
 ```
 As long as no votes have been casted it could be that the whole record does not exist yet or that `a` or `b` is still non-existent. This template takes care of these edge cases.
 
-The full template can be found [here].
+The full AWS Cloudformation template can be found [here].
 
   [here]:voteApp-CF-template.json
