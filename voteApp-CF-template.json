@@ -1,0 +1,351 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Metadata": {
+    "License": "Apache-2.0"
+  },
+  "Description":
+    "This template creates a serverless version of the Docker Vote VoteApp\n **WARNING** This template creates a DynamoDB table and ApiGateway. \n  You will be billed for the AWS resources used if you create a stack \n from this template.",
+  "Resources": {
+    "VoteAppDynamoDBTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "topic",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "topic",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": 5,
+          "WriteCapacityUnits": 5
+        }
+      }
+    },
+    "VoteAppApigwRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": ["apigateway.amazonaws.com"] },
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "VoteAppDynamoDBPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["dynamodb:Query", "dynamodb:UpdateItem"],
+                  "Resource": {
+                    "Fn::GetAtt": ["VoteAppDynamoDBTable", "Arn"]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "VoteAppApigwCwRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": ["apigateway.amazonaws.com"] },
+              "Action": ["sts:AssumeRole"]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "VoteAppCloudWatchPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:DescribeLogGroups",
+                    "logs:DescribeLogStreams",
+                    "logs:PutLogEvents",
+                    "logs:GetLogEvents",
+                    "logs:FilterLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "VoteAppApi": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "VoteAppApi",
+        "Description": "API for the voting demo",
+        "FailOnWarnings": true,
+        "Body": {
+          "swagger": "2.0",
+          "info": {
+            "version": "2018-03-18T15:12:17Z",
+            "title": "vote"
+          },
+          "host": "voteapi.execute-api.region.amazonaws.com",
+          "basePath": "/VoteApp",
+          "schemes": ["https"],
+          "paths": {
+            "/results": {
+              "get": {
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "responses": {
+                  "200": {
+                    "description": "200 response",
+                    "schema": {
+                      "$ref": "#/definitions/Results"
+                    }
+                  }
+                },
+                "x-amazon-apigateway-integration": {
+                  "credentials": {
+                    "Fn::GetAtt": ["VoteAppApigwRole", "Arn"]
+                  },
+                  "responses": {
+                    "default": {
+                      "statusCode": "200",
+                      "responseTemplates": {
+                          "application/json": "#set($inputRoot = $input.path('$'))\n{\n  \"success\" : true,\n  \"result\" : {\n#if($inputRoot.Count==0)\n    \"a\" : 0,\n    \"b\" : 0\n#{else}\n    \"a\" : #if($inputRoot.Items[0].a==\"\")0#{else}$inputRoot.Items[0].a.N#end,\n    \"b\" : #if($inputRoot.Items[0].b==\"\")0#{else}$inputRoot.Items[0].b.N#end\n#end\n     }\n}"
+                        }
+                    }
+                  },
+                  "requestTemplates": {
+                    "application/json": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "{ \n    \"TableName\" : \"",
+                          { "Ref": "VoteAppDynamoDBTable" },
+                          "\",\n    \"KeyConditionExpression\": \"topic = :v1\",\n    \"ExpressionAttributeValues\": {\n        \":v1\": {\n            \"S\": \"default\"\n        }\n    }\n}"
+                        ]
+                      ]
+                    }
+                  },
+                  "uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":dynamodb:action/Query"
+                      ]
+                    ]
+                  },
+                  "passthroughBehavior": "never",
+                  "httpMethod": "POST",
+                  "type": "aws"
+                }
+              }
+            },
+            "/vote": {
+              "post": {
+                "consumes": ["application/json"],
+                "produces": ["application/json"],
+                "parameters": [
+                  {
+                    "in": "body",
+                    "name": "Vote",
+                    "required": true,
+                    "schema": {
+                      "$ref": "#/definitions/Vote"
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "200 response",
+                    "schema": {
+                      "$ref": "#/definitions/Empty"
+                    }
+                  }
+                },
+                "x-amazon-apigateway-integration": {
+                  "credentials": {
+                    "Fn::GetAtt": ["VoteAppApigwRole", "Arn"]
+                  },
+                  "responses": {
+                    "default": {
+                      "statusCode": "200"
+                    }
+                  },
+                  "requestTemplates": {
+                    "application/json": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "{ \n    \"TableName\" : \"",
+                          { "Ref": "VoteAppDynamoDBTable" },
+                          "\",\n    \"Key\": {\n        \"topic\": {\n            \"S\":\"default\"\n        }\n     },\n    \"UpdateExpression\": \"ADD $input.path('$.vote') :inc\",\n    \"ExpressionAttributeValues\": {\n        \":inc\": {\n          \"N\": \"1\"\n        }\n    }\n}"
+                        ]
+                      ]
+                    }
+                  },
+                  "uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":dynamodb:action/UpdateItem"
+                      ]
+                    ]
+                  },
+                  "passthroughBehavior": "never",
+                  "httpMethod": "POST",
+                  "type": "aws"
+                }
+              }
+            }
+          },
+          "definitions": {
+            "Empty": {
+              "type": "object",
+              "title": "Empty Schema"
+            },
+            "Vote": {
+              "type": "object",
+              "required": ["vote"],
+              "properties": {
+                "vote": {
+                  "type": "string",
+                  "enum": ["a", "b"]
+                }
+              },
+              "title": "Vote Schema"
+            },
+            "Results": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
+                },
+                "result": {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "type": "integer"
+                    },
+                    "b": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              },
+              "title": "Results schema"
+            }
+          },
+          "x-amazon-apigateway-documentation": {
+            "version": "1.0",
+            "createdDate": "2018-03-18T15:36:41Z",
+            "documentationParts": [
+              {
+                "location": {
+                  "type": "API"
+                },
+                "properties": {
+                  "description": "Voting api"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "ApiGatewayAccount": {
+      "Type": "AWS::ApiGateway::Account",
+      "Properties": {
+        "CloudWatchRoleArn": {
+          "Fn::GetAtt": ["VoteAppApigwCwRole", "Arn"]
+        }
+      }
+    },
+
+    "ApiGatewayStage": {
+      "DependsOn": ["ApiGatewayAccount"],
+      "Type": "AWS::ApiGateway::Stage",
+      "Properties": {
+        "DeploymentId": { "Ref": "ApiDeployment" },
+        "MethodSettings": [
+          {
+            "DataTraceEnabled": true,
+            "HttpMethod": "*",
+            "LoggingLevel": "INFO",
+            "ResourcePath": "/*"
+          }
+        ],
+        "RestApiId": { "Ref": "VoteAppApi" },
+        "StageName": "LATEST"
+      }
+    },
+
+    "ApiDeployment": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": { "Ref": "VoteAppApi" },
+        "StageName": "DemoStage"
+      }
+    }
+  },
+
+  "Outputs": {
+    "TableName": {
+      "Value": { "Ref": "VoteAppDynamoDBTable" },
+      "Description": "Table name of the newly created DynamoDB table"
+    },
+    "RoleName": {
+      "Value": { "Ref": "VoteAppApigwRole" },
+      "Description": "Table name of the newly created IAM role"
+    },
+    "RootUrl": {
+      "Description": "Root URL of the API gateway",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "VoteAppApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".amazonaws.com/DemoStage"
+          ]
+        ]
+      }
+    }
+  }
+}
