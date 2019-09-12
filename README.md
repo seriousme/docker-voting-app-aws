@@ -1,5 +1,7 @@
 # Docker Voting App done Serverless Style
 
+[![launch button](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=region#/stacks/new?stackName=ServerlessVotingApp&templateURL=https://raw.githubusercontent.com/seriousme/docker-voting-app-aws/master/voteApp-CF-template.json)
+
 ## Introduction
 
 I was reading [Deploy the Voting App to AWS ECS with Fargate] by Tony Pujals
