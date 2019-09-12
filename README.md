@@ -1,6 +1,6 @@
 # Docker Voting App done Serverless Style
 
-[![launch button](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=region#/stacks/new?stackName=ServerlessVotingApp&templateURL=https://cf-templates-dxlmf2isjd8s-eu-west-1.s3-eu-west-1.amazonaws.com/2019255sNG-voteApp-CF-template.json)
+[![launch button](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=ServerlessVotingApp&templateURL=https://cf-templates-dxlmf2isjd8s-eu-west-1.s3-eu-west-1.amazonaws.com/2019255sNG-voteApp-CF-template.json)
 
 ## Introduction
 
