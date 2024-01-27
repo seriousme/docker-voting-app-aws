@@ -25,6 +25,8 @@ The queue service could be implemented using SNS, however one typically uses a
 queue to ensure scalability of the database or to allow for maintenance. Both
 are handled by AWS DynamoDB automatically.
 
+![composer diagram](application-composer-voteApp-CF-template.json.png)
+
 ## Creating the schema
 
 Looking at the sources of the voting app there are two endpoints:
